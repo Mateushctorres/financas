@@ -1,5 +1,6 @@
 using Financas.Api.Data;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Financas", $"Data Source={_caminhoBanco};Pooling=False");
+
+        // Igual ao Development: requisições inválidas viram exceção. Garante que elas continuem saindo como 400.
+        builder.ConfigureServices(services =>
+            services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true));
     }
 
     protected override IHost CreateHost(IHostBuilder builder)

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Financas.Api.Categorias;
+using Financas.Api.Common;
 using Financas.Api.Contas;
 using Financas.Api.Dashboard;
 using Financas.Api.Data;
@@ -25,7 +26,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddValidation();
-builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = ProblemDetailsConfig.Personalizar);
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
@@ -33,7 +34,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 var app = builder.Build();
 
 // Exceções e respostas de erro sem corpo (404, 405...) também saem como ProblemDetails.
-app.UseExceptionHandler();
+app.UseExceptionHandler(new ExceptionHandlerOptions { StatusCodeSelector = ProblemDetailsConfig.StatusCode });
 app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())

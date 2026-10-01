@@ -41,7 +41,23 @@ public class RegrasTests
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
         var problema = await resposta.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(TestContext.Current.CancellationToken);
-        Assert.Contains("Valor", problema!.Errors.Keys, StringComparer.OrdinalIgnoreCase);
+        // camelCase, igual ao JSON (e aos erros de regra de negócio, como "tipo").
+        Assert.Contains("valor", problema!.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task Transacao_sem_campo_obrigatorio_retorna_400_explicando_o_campo()
+    {
+        await using var api = new ApiFactory();
+        var http = api.CreateClient();
+        var semTipo = """{"descricao":"Compra","valor":10,"data":"2026-08-01","contaId":1,"categoriaId":1}""";
+
+        var resposta = await http.PostAsync("/api/transacoes",
+            new StringContent(semTipo, System.Text.Encoding.UTF8, "application/json"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        var problema = await resposta.Content.ReadFromJsonAsync<ProblemDetails>(TestContext.Current.CancellationToken);
+        Assert.Contains("'tipo'", problema!.Detail);
     }
 
     [Fact]
