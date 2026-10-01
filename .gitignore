@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# SQLite (banco local de desenvolvimento)
+*.db
+*.db-shm
+*.db-wal
+
+# Node / Next.js (o web/.gitignore cobre o resto)
+node_modules/
+.next/
+
+# Variáveis de ambiente locais
+.env.local
+.env*.local
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
