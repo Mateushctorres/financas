@@ -101,6 +101,8 @@ Usuário único por enquanto (sem login). Login e multiusuário virão depois, e
 - **Decimal no SQLite:** o SQLite não tem tipo decimal nativo e o EF Core armazena como texto. Verifique se agregações (`Sum`) e ordenações por valor são traduzidas para SQL; se não forem, faça a agregação em memória depois de filtrar por período (o volume é pequeno) e deixe um comentário `// TODO(postgres): mover para o banco`.
 - **Next.js recente:** `params` e `searchParams` das páginas são **Promises** e precisam de `await`. Confira a documentação da versão instalada antes de usar APIs que mudaram entre versões.
 - Não use `localStorage` para dados do domínio; a fonte da verdade é a API.
+- **shadcn/ui com Base UI** (preset `base-nova`): para trocar o elemento renderizado use a prop `render` (`<SheetTrigger render={<Button />}>`), não `asChild` (que é do Radix).
+- **Next 16**: `error.tsx` recebe `retry` (não `reset`). Páginas que leem a API chamam `await connection()` para não serem pré-renderizadas no build.
 
 ## Comandos
 

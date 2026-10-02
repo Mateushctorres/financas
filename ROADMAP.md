@@ -24,11 +24,11 @@ Uma fase por vez. Ao concluir, marque os itens, atualize `docs/APRENDIZADO.md`, 
 - [x] Testes de integração: saldo de conta, resumo do mês, gastos por categoria, validação de tipo da transação vs categoria
 
 ## Fase 2 — Base do frontend
-- [ ] shadcn/ui inicializado
-- [ ] Layout raiz com sidebar (Dashboard, Transações, Contas, Categorias, Orçamentos) e menu mobile
-- [ ] Dark mode com alternador
-- [ ] `lib/api.ts` (fetch tipado + tratamento de ProblemDetails), `lib/api-types.ts` gerado, `lib/format.ts` (moeda e datas)
-- [ ] Script `gen:api`, `.env.example`
+- [x] shadcn/ui inicializado
+- [x] Layout raiz com sidebar (Dashboard, Transações, Contas, Categorias, Orçamentos) e menu mobile
+- [x] Dark mode com alternador
+- [x] `lib/api.ts` (fetch tipado + tratamento de ProblemDetails), `lib/api-types.ts` gerado, `lib/format.ts` (moeda e datas)
+- [x] Script `gen:api`, `.env.example`
 
 ## Fase 3 — Cadastros
 - [ ] **Categorias**: lista com cor e tipo, criar/editar em diálogo, excluir com confirmação

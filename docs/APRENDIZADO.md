@@ -61,3 +61,53 @@ Esta fase é toda backend. Os pontos abaixo são os **novos no .NET 9/10** ou as
 1. Adicione o filtro `busca` (texto na descrição) ao `GET /api/transacoes` e um teste para ele. Lembre de regenerar os tipos do front depois, a partir da Fase 2.
 2. Crie `GET /api/dashboard/ultimas-transacoes?quantidade=5` com `[Range(1, 20)]` e confira no Scalar que a validação aparece documentada.
 3. Faça a API recusar transações com data mais de 1 ano no futuro. Decida se é DataAnnotation ou regra no endpoint, e por quê.
+
+---
+
+## Fase 2: Base do frontend
+
+### Conceitos
+
+- **Server Component vs Client Component**:
+  - Todo componente do App Router é **Server Component** por padrão. Ele roda só no servidor, pode ser `async` e chamar a API direto (como uma action do MVC). Nenhum JavaScript dele vai para o navegador.
+  - **Client Component** (com `"use client"` no topo) também é pré-renderizado no servidor, mas depois "hidrata" no navegador e fica interativo (estado, eventos, hooks).
+  - A regra do projeto é: cliente só nas ilhas interativas. Nesta fase são `TemaProvider`, `AlternarTema`, `LinksNavegacao` e `MenuMobile`.
+- **Layout raiz** (`app/layout.tsx`): é o `_Layout.cshtml`. O `children` faz o papel do `@RenderBody()`. Layouts se aninham por pasta e **não são recriados** ao navegar.
+- **`metadata`**: cada página exporta seu título. O `template: "%s | Finanças"` do layout monta o `<title>`.
+- **Props e `children`**: props são os parâmetros do componente. `children` é o conteúdo entre as tags. Um Client Component pode receber Server Components como `children`: é assim que o `TemaProvider` (cliente) envolve o app inteiro sem transformar tudo em cliente.
+- **Hooks** (`useState`, `usePathname`, `useTheme`): funções `use*` que só existem em Client Components. `useState` devolve `[valor, setValor]`, e chamar `setValor` faz o React renderizar o componente de novo.
+- **`<Link>`**: navegação sem recarregar a página, com prefetch automático.
+- **`loading.tsx` / `error.tsx`**:
+  - `loading.tsx` é mostrado enquanto a página busca dados (usa Suspense e streaming por baixo).
+  - `error.tsx` é um Error Boundary. Precisa ser cliente, e no Next 16 recebe `retry()` (nas versões antigas era `reset()`).
+- **`connection()`**: avisa o Next para renderizar a página a cada requisição. Sem isso, o `npm run build` tentaria pré-renderizar o Dashboard chamando a API.
+- **Variáveis de ambiente**:
+  - `API_URL` sem o prefixo `NEXT_PUBLIC_` só existe no servidor.
+  - `import "server-only"` em `lib/api.ts` faz o build falhar se um Client Component importar o cliente da API.
+- **Tipos gerados da API**:
+  - `npm run gen:api` lê o OpenAPI e gera `lib/api-types.ts`.
+  - O `openapi-fetch` usa esses tipos: `api.GET("/api/contas")` já sabe que volta `ContaDto[]`. É parecido com um cliente gerado pelo NSwag/Kiota.
+- **Tailwind**:
+  - Classes utilitárias no próprio JSX (`flex`, `gap-4`, `p-4`).
+  - *Mobile first*: a classe sem prefixo vale sempre, e `md:` vale a partir de 768px. Ex.: `hidden md:flex` = escondido no celular, visível no desktop.
+  - `dark:` aplica a classe só no tema escuro.
+  - As cores (`bg-background`, `text-muted-foreground`) são variáveis definidas em `app/globals.css`, e mudam sozinhas no dark mode.
+- **shadcn/ui**:
+  - Os componentes são **copiados** para `components/ui` (não ficam numa dependência fechada) e você pode editá-los.
+  - Nesta versão eles usam o **Base UI**, que troca o elemento renderizado com a prop `render` (ex.: `<SheetTrigger render={<Button />}>`).
+  - O `cn()` junta classes e resolve conflitos do Tailwind.
+- **Datas**: `lib/format.ts` tem o `dataLocal("2026-10-01")`, que monta a data no fuso local. Nunca use `new Date("2026-10-01")`: no Brasil isso vira o dia anterior.
+
+### Onde olhar
+
+- `web/app/layout.tsx`: layout raiz, provider de tema e estrutura sidebar + conteúdo
+- `web/components/`: `sidebar.tsx` e `cabecalho.tsx` (server); `menu-mobile.tsx`, `links-navegacao.tsx` e `alternar-tema.tsx` (client)
+- `web/lib/api.ts`, `web/lib/format.ts`, `web/lib/navegacao.ts`
+- `web/app/page.tsx`: o primeiro Server Component que chama a API
+- `web/app/loading.tsx`, `web/app/error.tsx`
+
+### Exercícios
+
+1. Adicione um item "Relatórios" ao menu, editando só `lib/navegacao.ts`, e crie `app/relatorios/page.tsx`. Repare que a sidebar e a gaveta mobile se atualizam juntas.
+2. Pare a API e recarregue o Dashboard: veja o `error.tsx`. Suba a API de novo e clique em "Tentar de novo".
+3. Remova o `"use client"` de `links-navegacao.tsx` e rode `npm run build`. Leia o erro: ele explica por que hooks exigem Client Component. Depois desfaça.
