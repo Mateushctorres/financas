@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Cabecalho } from "@/components/cabecalho";
 import { Sidebar } from "@/components/sidebar";
 import { TemaProvider } from "@/components/tema-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 // next/font baixa a fonte no build e a serve junto com o app (sem requisição ao Google
@@ -39,6 +40,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <main className="flex-1 p-4 md:p-8">{children}</main>
             </div>
           </div>
+          {/* Toaster: o "palco" onde aparecem as notificações disparadas com toast.success()/toast.error() */}
+          <Toaster richColors position="top-right" />
         </TemaProvider>
       </body>
     </html>

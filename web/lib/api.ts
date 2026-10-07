@@ -4,6 +4,7 @@ import "server-only";
 
 import createClient from "openapi-fetch";
 import type { paths } from "./api-types";
+import type { EstadoAcao } from "./estado-acao";
 
 if (!process.env.API_URL) {
   throw new Error("API_URL não definida. Copie web/.env.example para web/.env.local.");
@@ -45,4 +46,33 @@ export function exigirDados<T>(resultado: { data?: T; error?: unknown; response:
     throw new Error(mensagemDoProblema(resultado.error as ProblemDetails | undefined, resultado.response.status));
   }
   return resultado.data;
+}
+
+/**
+ * Para ESCRITAS (Server Actions): converte a resposta de erro da API num EstadoAcao,
+ * que o formulário usa para mostrar a mensagem geral e os erros de cada campo.
+ */
+export function estadoDeErro(problema: unknown, status: number): EstadoAcao {
+  const detalhes = problema as ProblemDetails | undefined;
+  return {
+    ok: false,
+    // Com erros por campo, eles aparecem ao lado de cada campo; a mensagem geral só orienta.
+    mensagem: detalhes?.errors ? "Corrija os campos destacados." : mensagemDoProblema(detalhes, status),
+    erros: detalhes?.errors,
+  };
+}
+
+/** Quando a API nem responde (desligada, porta errada). */
+export const erroDeConexao: EstadoAcao = {
+  ok: false,
+  mensagem: "Não foi possível conectar à API. Verifique se ela está rodando.",
+};
+
+/** Copia os campos de texto do FormData para devolver ao formulário em caso de erro. */
+export function valoresDoFormulario(formData: FormData): Record<string, string> {
+  const valores: Record<string, string> = {};
+  formData.forEach((valor, campo) => {
+    if (typeof valor === "string") valores[campo] = valor;
+  });
+  return valores;
 }
