@@ -38,3 +38,11 @@ export function formatarData(iso: string): string {
 export function formatarMesAno(ano: number, mes: number): string {
   return mesAno.format(new Date(ano, mes - 1, 1));
 }
+
+/** Data de hoje no fuso local, no formato da API: "2026-10-09". */
+export function hojeIso(): string {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoje.getDate()).padStart(2, "0");
+  return `${hoje.getFullYear()}-${mes}-${dia}`;
+}

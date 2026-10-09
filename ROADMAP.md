@@ -31,10 +31,10 @@ Uma fase por vez. Ao concluir, marque os itens, atualize `docs/APRENDIZADO.md`, 
 - [x] Script `gen:api`, `.env.example`
 
 ## Fase 3 — Cadastros
-- [ ] **Categorias**: lista com cor e tipo, criar/editar em diálogo, excluir com confirmação
-- [ ] **Contas**: cards com saldo atual, criar/editar/arquivar
-- [ ] **Transações**: tabela com filtros na URL (mês, conta, categoria, tipo), paginação, criar/editar/excluir
-- [ ] Mensagens de erro da API exibidas no formulário; toast de sucesso
+- [x] **Categorias**: lista com cor e tipo, criar/editar em diálogo, excluir com confirmação
+- [x] **Contas**: cards com saldo atual, criar/editar/arquivar
+- [x] **Transações**: tabela com filtros na URL (mês, conta, categoria, tipo), paginação, criar/editar/excluir
+- [x] Mensagens de erro da API exibidas no formulário; toast de sucesso
 
 ## Fase 4 — Dashboard
 - [ ] Seletor de mês (na URL)

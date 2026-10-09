@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import { toast } from "sonner";
 
 import { salvarCategoria } from "@/app/categorias/actions";
+import { ErroCampo } from "@/components/erro-campo";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -135,9 +136,4 @@ function FormularioCategoria({ categoria, aoConcluir }: { categoria?: CategoriaD
       </DialogFooter>
     </form>
   );
-}
-
-function ErroCampo({ mensagens }: { mensagens?: string[] }) {
-  if (!mensagens) return null; // retornar null = não renderizar nada
-  return <p className="text-sm text-destructive">{mensagens.join(" ")}</p>;
 }

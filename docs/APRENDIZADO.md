@@ -111,3 +111,62 @@ Esta fase é toda backend. Os pontos abaixo são os **novos no .NET 9/10** ou as
 1. Adicione um item "Relatórios" ao menu, editando só `lib/navegacao.ts`, e crie `app/relatorios/page.tsx`. Repare que a sidebar e a gaveta mobile se atualizam juntas.
 2. Pare a API e recarregue o Dashboard: veja o `error.tsx`. Suba a API de novo e clique em "Tentar de novo".
 3. Remova o `"use client"` de `links-navegacao.tsx` e rode `npm run build`. Leia o erro: ele explica por que hooks exigem Client Component. Depois desfaça.
+
+---
+
+## Fase 3: Cadastros
+
+### O padrão de toda tela de cadastro
+
+```
+app/<tela>/page.tsx      Server Component: busca na API (lib/api.ts) e monta o HTML
+components/<tela>/*.tsx  Client Components: diálogo + formulário, confirmação de exclusão
+app/<tela>/actions.ts    Server Actions ("use server"): chamam a API e dão revalidatePath
+```
+
+O caminho de um "Salvar":
+1. O `<form action={acao}>` envia. O React monta o `FormData` e chama a Server Action.
+2. A action roda **no servidor do Next** (um POST automático) e chama a API .NET.
+3. Se der erro, ela devolve `{ ok: false, erros }`, e o formulário mostra cada erro embaixo do campo.
+4. Se der certo, `revalidatePath("/<tela>")` faz a página ser renderizada de novo no servidor, e a lista atualizada chega **na mesma resposta**. É como um `POST` + `RedirectToAction("Index")` do MVC, sem recarregar a página.
+
+O navegador nunca fala com a API .NET. Por isso não precisa de CORS, e a `API_URL` não vaza para o navegador.
+
+### Conceitos
+
+- **Server Actions** (`"use server"` no topo do arquivo): funções que rodam no servidor e que o navegador chama como funções comuns.
+  - São endpoints públicos (qualquer um pode fazer o POST), então quando houver login a verificação do usuário vai nelas.
+  - A validação de verdade continua na API.
+- **`useActionState(action, estadoInicial)`** devolve `[estado, acao, pendente]`:
+  - `estado` é o último retorno da action (erros, mensagem);
+  - `acao` vai no `<form action>`;
+  - `pendente` desabilita o botão enquanto a action roda.
+- **`useTransition`**: para chamar uma action fora de um `<form>` (excluir, arquivar, trocar filtro) e ter o `pendente`.
+- **React 19 limpa o formulário depois de cada envio.** Para não perder o que o usuário digitou quando dá erro, a action devolve `valores` e os campos são recriados com eles (`key` + `defaultValue`). Detalhes em `lib/estado-acao.ts`.
+- **Campos controlados vs não controlados**:
+  - quase todos os campos usam `defaultValue`: o navegador guarda o valor, e o `FormData` lê no envio;
+  - só o **tipo** da transação é controlado (`value` + `onChange` + `useState`), porque a lista de categorias depende dele a cada render.
+- **`key` para recriar um elemento**: `key={tipo}` no select de categoria faz ele voltar a "Selecione..." quando o tipo muda.
+- **Cores dinâmicas vão em `style`**: o Tailwind gera as classes no build e não consegue criar `bg-[#16A34A]` para uma cor que vem do banco.
+- **Filtros na URL (`searchParams`) em vez de `useState`**:
+  - O estado do filtro **é** a URL: `/transacoes?ano=2026&mes=9&tipo=Despesa`. A página (Server Component) lê `await searchParams` e já busca os dados filtrados no servidor. É o mesmo modelo de uma action `Index(int? ano, int? mes, ...)` do MVC.
+  - Com `useState`, a página teria que virar Client Component e buscar os dados no navegador, com `useEffect`, estados de carregamento e tratamento de erro manuais. Isso também obrigaria a expor a API ao navegador.
+  - Na URL, o link é **compartilhável** e vira favorito, o **F5** mantém os filtros, e os botões **voltar/avançar** do navegador navegam entre filtros.
+  - O componente de filtros quase não tem lógica: trocar um select chama `router.push(novaUrl)`, e o resto acontece no servidor.
+- **`Promise.all`**: as três buscas da página de Transações (transações, contas, categorias) disparam juntas. É o `Task.WhenAll` do C#: o tempo total é o da mais lenta, não a soma das três.
+- **Links com cara de botão**: `buttonVariants()` aplica o estilo do botão a um `<Link>`, como no seletor de mês e na paginação.
+
+### Onde olhar
+
+- `web/app/categorias/`: o exemplo mais simples do padrão (`page.tsx`, `actions.ts`) e `web/components/categorias/`
+- `web/app/contas/actions.ts`: `definirContaAtiva` busca a conta na API e reenvia só com o `ativa` alterado
+- `web/app/transacoes/page.tsx`: `searchParams`, `Promise.all`, tabela e paginação
+- `web/components/transacoes/filtros-transacoes.tsx`: filtros que só mudam a URL
+- `web/components/seletor-mes.tsx`, `web/components/paginacao.tsx`, `web/lib/url.ts`: navegação por links
+- `web/lib/estado-acao.ts`, e `estadoDeErro` / `valoresDoFormulario` em `web/lib/api.ts`
+
+### Exercícios
+
+1. Em Transações, adicione um filtro "Ordenar por valor" na URL (`?ordem=valor`). Comece pela API (`TransacoesEndpoints.cs`). Lembre do decimal no SQLite e do `npm run gen:api` no fim.
+2. Em Contas, adicione um botão de **excluir** que só aparece para contas sem transações. A API já responde 409 quando a conta tem transações; mostre a mensagem num toast.
+3. Abra `/transacoes`, aplique dois filtros, copie a URL e cole numa aba anônima. Depois use o botão voltar do navegador e observe os filtros mudando. Compare com o que aconteceria se os filtros estivessem em `useState`.
