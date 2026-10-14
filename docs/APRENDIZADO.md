@@ -170,3 +170,61 @@ O navegador nunca fala com a API .NET. Por isso não precisa de CORS, e a `API_U
 1. Em Transações, adicione um filtro "Ordenar por valor" na URL (`?ordem=valor`). Comece pela API (`TransacoesEndpoints.cs`). Lembre do decimal no SQLite e do `npm run gen:api` no fim.
 2. Em Contas, adicione um botão de **excluir** que só aparece para contas sem transações. A API já responde 409 quando a conta tem transações; mostre a mensagem num toast.
 3. Abra `/transacoes`, aplique dois filtros, copie a URL e cole numa aba anônima. Depois use o botão voltar do navegador e observe os filtros mudando. Compare com o que aconteceria se os filtros estivessem em `useState`.
+
+---
+
+## Fase 4: Dashboard
+
+### Servidor busca, cliente desenha
+
+```
+app/page.tsx (Server Component)
+  └─ busca resumo, gastos, evolução e últimas transações na API (Promise.all)
+  └─ <GraficoEvolucao dados={evolucao} />   ← "use client" (components/dashboard/)
+  └─ <GraficoGastos dados={gastos} />       ← "use client"
+```
+
+- **Por que os gráficos precisam ser cliente**: o Recharts só funciona no navegador. Ele mede a largura disponível (`ResizeObserver`), desenha o SVG a partir dessa medida e reage ao mouse para mostrar o tooltip. No servidor não há tela para medir nem mouse. (Testamos: renderizado no Node, o Recharts 3 devolve um `<div>` vazio.)
+- **Só o que precisa vira cliente**: a página, os cards, a tabela acessível e a lista de últimas transações continuam no servidor. Apenas os dois componentes de gráfico levam JavaScript ao navegador.
+- **Props atravessam a fronteira como JSON**: o que o servidor passa ao cliente precisa ser serializável (números, textos, listas, objetos). Funções não atravessam. Por isso as funções de formatação (`formatarMoeda` etc.) são **importadas dentro** do componente de gráfico, em vez de passadas por props.
+
+### `Promise.all`: por que importa
+
+As quatro seções do dashboard não dependem umas das outras. Escrevendo assim:
+
+```ts
+const resumo = await api.GET(...);   // espera terminar...
+const gastos = await api.GET(...);   // ...só então começa esta
+```
+
+cada requisição só começa quando a anterior termina: é o **efeito cascata** (*waterfall*). Com quatro chamadas de 50 ms, são 200 ms. Com `Promise.all([...])`, as quatro saem juntas e o tempo total é o da mais lenta (~50 ms). É o `Task.WhenAll` do C#. Como a página só é enviada depois que os dados chegam, isso afeta diretamente quanto tempo o usuário fica olhando o `loading.tsx`.
+
+Uma alternativa mais avançada seria envolver cada seção em `<Suspense>`, para cada uma aparecer quando ficar pronta (streaming). Para quatro chamadas rápidas à API local, `Promise.all` é mais simples e suficiente.
+
+### Visual e acessibilidade
+
+- **Hierarquia**: um único número em destaque (o saldo, `text-5xl`) e os outros três cards em tamanho menor. Valores grandes não usam `tabular-nums`, porque os dígitos de largura igual ficam "frouxos" em tamanho grande. Ele fica reservado para colunas que precisam alinhar.
+- **Cores das séries** (Receitas/Despesas):
+  - definidas uma vez em `globals.css` (`--serie-receitas`, `--serie-despesas`), com tons próprios para o tema escuro;
+  - viram classes do Tailwind (`bg-serie-receitas`) e cores do gráfico, então o marcador do card e a barra sempre combinam.
+- **A paleta foi validada por script, não "no olho"**:
+  - o par verde-água/laranja passa nos testes de daltonismo nos dois temas;
+  - no tema claro, o verde-água tem pouco contraste com o branco, e por isso há legenda e tabela.
+- **Cores das categorias**: você escolhe as cores no cadastro, e elas reprovam no teste de daltonismo (roxo × índigo são quase iguais para protanopia). Por isso o gráfico **nunca depende só da cor**: o nome da categoria está escrito em cada barra.
+- **Texto não usa a cor da série**: valores e rótulos ficam na cor normal do texto. A cor aparece só nas barras, nos traços do tooltip e nos marcadores dos cards.
+- **"Ver como tabela"**: cada gráfico tem a mesma informação em tabela, dentro de um `<details>` (HTML puro, abre e fecha sem JavaScript), para leitores de tela e para quem não distingue as cores.
+- **Sem animação de entrada**: os gráficos aparecem prontos, sem "crescer" a cada troca de mês.
+
+### Onde olhar
+
+- `web/app/page.tsx`: `Promise.all`, os cards e a tabela acessível
+- `web/components/dashboard/grafico-evolucao.tsx` e `grafico-gastos.tsx`: os Client Components de gráfico
+- `web/components/dashboard/tooltip-grafico.tsx`: tooltip próprio (valor em destaque, traço com a cor da série)
+- `web/app/globals.css`: as variáveis `--serie-*`
+- `web/lib/parametros.ts`: `mesDaUrl`, compartilhado entre o Dashboard e Transações
+
+### Exercícios
+
+1. Troque o `Promise.all` por quatro `await` em sequência. Coloque um `await new Promise(r => setTimeout(r, 1000))` dentro de um endpoint da API (ou use a aba Network do navegador) e compare o tempo de carregamento. Depois desfaça.
+2. No gráfico de evolução, adicione uma terceira série "Resultado" como **linha** (`ComposedChart` + `Line`). Pense: precisa de um segundo eixo? (Não: está na mesma escala de reais. Dois eixos Y num mesmo gráfico quase sempre enganam.)
+3. Clique em "Ver como tabela" com o leitor de tela do Windows (Narrador, Ctrl+Win+Enter) ligado e compare com o que ele lê do gráfico.

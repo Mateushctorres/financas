@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Cores das séries Receitas/Despesas. Viram classes do Tailwind (bg-serie-receitas etc.)
+     e são usadas também pelos gráficos, então cards e gráficos sempre combinam. */
+  --color-serie-receitas: var(--serie-receitas);
+  --color-serie-despesas: var(--serie-despesas);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -49,6 +53,10 @@
 }
 
 :root {
+  /* Validadas para daltonismo (ver docs/APRENDIZADO.md, Fase 4). O tema escuro tem tons próprios,
+     ajustados para o fundo escuro, não é só "inverter". */
+  --serie-receitas: #1baf7a;
+  --serie-despesas: #eb6834;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -84,6 +92,8 @@
 }
 
 .dark {
+  --serie-receitas: #199e70;
+  --serie-despesas: #d95926;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

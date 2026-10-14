@@ -12,18 +12,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api, exigirDados } from "@/lib/api";
 import { formatarData, formatarMoeda } from "@/lib/format";
+import { mesDaUrl, numeroDaUrl } from "@/lib/parametros";
 import type { Parametros } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Transações" };
 
 const TAMANHO_PAGINA = 20;
-
-/** Lê um número inteiro positivo da URL; qualquer outra coisa vira undefined. */
-function numero(valor: string | string[] | undefined): number | undefined {
-  const n = Number(valor);
-  return Number.isInteger(n) && n > 0 ? n : undefined;
-}
 
 // Os filtros vêm da URL: /transacoes?ano=2026&mes=9&contaId=1&tipo=Despesa&pagina=2
 // É o mesmo modelo de uma action GET do MVC com parâmetros de query string:
@@ -33,14 +28,11 @@ function numero(valor: string | string[] | undefined): number | undefined {
 export default async function TransacoesPage({ searchParams }: PageProps<"/transacoes">) {
   const query = await searchParams;
 
-  const hoje = new Date();
-  const mesInformado = numero(query.mes);
-  const ano = numero(query.ano) ?? hoje.getFullYear();
-  const mes = mesInformado && mesInformado <= 12 ? mesInformado : hoje.getMonth() + 1;
-  const contaId = numero(query.contaId);
-  const categoriaId = numero(query.categoriaId);
+  const { ano, mes } = mesDaUrl(query);
+  const contaId = numeroDaUrl(query.contaId);
+  const categoriaId = numeroDaUrl(query.categoriaId);
   const tipo = query.tipo === "Receita" || query.tipo === "Despesa" ? query.tipo : undefined;
-  const pagina = numero(query.pagina) ?? 1;
+  const pagina = numeroDaUrl(query.pagina) ?? 1;
 
   // Parâmetros atuais, como texto, para montar links que preservam os filtros.
   const parametros: Parametros = {

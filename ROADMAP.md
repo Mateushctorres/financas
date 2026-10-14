@@ -37,11 +37,11 @@ Uma fase por vez. Ao concluir, marque os itens, atualize `docs/APRENDIZADO.md`, 
 - [x] Mensagens de erro da API exibidas no formulário; toast de sucesso
 
 ## Fase 4 — Dashboard
-- [ ] Seletor de mês (na URL)
-- [ ] Cards: saldo total, receitas, despesas, resultado do mês
-- [ ] Gráfico de gastos por categoria (barras horizontais ou rosca, com as cores das categorias)
-- [ ] Gráfico de evolução de receitas vs despesas (últimos 6 meses)
-- [ ] Últimas transações
+- [x] Seletor de mês (na URL)
+- [x] Cards: saldo total, receitas, despesas, resultado do mês
+- [x] Gráfico de gastos por categoria (barras horizontais ou rosca, com as cores das categorias)
+- [x] Gráfico de evolução de receitas vs despesas (últimos 6 meses)
+- [x] Últimas transações
 
 ## Fase 5 — Orçamentos
 - [ ] Tela de orçamentos do mês com barra de progresso por categoria (verde, amarelo a partir de 80%, vermelho acima de 100%)

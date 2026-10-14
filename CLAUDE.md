@@ -103,6 +103,9 @@ Usuário único por enquanto (sem login). Login e multiusuário virão depois, e
 - Não use `localStorage` para dados do domínio; a fonte da verdade é a API.
 - **shadcn/ui com Base UI** (preset `base-nova`): para trocar o elemento renderizado use a prop `render` (`<SheetTrigger render={<Button />}>`), não `asChild` (que é do Radix).
 - **Next 16**: `error.tsx` recebe `retry` (não `reset`). Páginas que leem a API chamam `await connection()` para não serem pré-renderizadas no build.
+- **WSL + disco do Windows (`/mnt/c`)**: o `next dev` às vezes não percebe arquivos alterados ou criados (hot reload falha, rota nova dá 404). Reinicie o `npm run dev`.
+- **`.next/dev/types/validator.ts` corrompido** (erro TS1434 no `tsc`/`build`) acontece quando o `next dev` é interrompido no meio da escrita. Apague a pasta `web/.next/dev`; ela é recriada.
+- **Recharts**: só renderiza no navegador (componentes de gráfico com `'use client'`). A legenda ordena por nome por padrão; use `itemSorter={null}` para seguir a ordem das séries.
 
 ## Comandos
 

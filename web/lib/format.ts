@@ -46,3 +46,21 @@ export function hojeIso(): string {
   const dia = String(hoje.getDate()).padStart(2, "0");
   return `${hoje.getFullYear()}-${mes}-${dia}`;
 }
+
+const moedaCompacta = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  notation: "compact", // 6500 → "R$ 6,5 mil"
+  maximumFractionDigits: 1,
+});
+const mesCurto = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+
+/** 6500 → "R$ 6,5 mil" (eixos de gráfico, onde o espaço é curto). */
+export function formatarMoedaCompacta(valor: number): string {
+  return moedaCompacta.format(valor);
+}
+
+/** (2026, 10) → "out" */
+export function formatarMesCurto(ano: number, mes: number): string {
+  return mesCurto.format(new Date(ano, mes - 1, 1)).replace(".", "");
+}
