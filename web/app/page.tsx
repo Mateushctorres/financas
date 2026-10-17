@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { GraficoEvolucao } from "@/components/dashboard/grafico-evolucao";
 import { GraficoGastos } from "@/components/dashboard/grafico-gastos";
+import { BarraOrcamento } from "@/components/orcamentos/barra-orcamento";
 import { SeletorMes } from "@/components/seletor-mes";
 import { TituloPagina } from "@/components/titulo-pagina";
 import { buttonVariants } from "@/components/ui/button";
@@ -26,17 +27,23 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
   const { ano, mes } = mesDaUrl(await searchParams);
   const periodo = { ano, mes };
 
-  // As quatro seções são independentes entre si. Promise.all dispara as quatro requisições
+  // As cinco seções são independentes entre si. Promise.all dispara as cinco requisições
   // ao mesmo tempo e espera todas terminarem (o Task.WhenAll do C#).
-  // Com quatro `await` em sequência, cada uma só começaria quando a anterior acabasse:
-  // 4 × 50 ms = 200 ms em vez de ~50 ms. Esse "efeito cascata" (waterfall) é o erro de
+  // Com cinco `await` em sequência, cada uma só começaria quando a anterior acabasse:
+  // 5 × 50 ms = 250 ms em vez de ~50 ms. Esse "efeito cascata" (waterfall) é o erro de
   // performance mais comum em Server Components.
-  const [resumo, gastos, evolucao, ultimas] = await Promise.all([
+  const [resumo, gastos, evolucao, ultimas, orcamentos] = await Promise.all([
     api.GET("/api/dashboard/resumo", { params: { query: periodo } }),
     api.GET("/api/dashboard/gastos-por-categoria", { params: { query: periodo } }),
     api.GET("/api/dashboard/evolucao", { params: { query: { ...periodo, meses: 6 } } }),
     api.GET("/api/transacoes", { params: { query: { ...periodo, tamanhoPagina: 5 } } }),
-  ]).then(([r, g, e, u]) => [exigirDados(r), exigirDados(g), exigirDados(e), exigirDados(u)] as const);
+    api.GET("/api/orcamentos", { params: { query: periodo } }),
+  ]).then(([r, g, e, u, o]) => [exigirDados(r), exigirDados(g), exigirDados(e), exigirDados(u), exigirDados(o)] as const);
+
+  // Só as categorias com limite, as mais perto (ou acima) do limite primeiro.
+  const orcamentosComLimite = orcamentos
+    .filter((o) => o.limite !== null && o.percentual !== null)
+    .sort((a, b) => (b.percentual ?? 0) - (a.percentual ?? 0));
 
   // O último ponto da evolução é o mês selecionado; o penúltimo, o mês anterior (só para exibir).
   const mesAnterior: EvolucaoMesDto | undefined = evolucao.at(-2);
@@ -122,49 +129,87 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
         </Card>
       </section>
 
-      {/* Linha 3: últimas transações do mês, com atalho para a lista completa já filtrada. */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Últimas transações</CardTitle>
-          <CardDescription>
-            {ultimas.totalItens} lançamento(s) em {nomeMes}
-          </CardDescription>
-          <CardAction>
-            <Link href={`/transacoes?ano=${ano}&mes=${mes}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              Ver todas <ArrowRight />
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          {ultimas.itens.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma transação neste mês.</p>
-          ) : (
-            <ul className="divide-y">
-              {ultimas.itens.map((t) => (
-                <li key={t.id} className="flex items-center gap-3 py-2.5">
-                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.categoriaCor }} aria-hidden="true" />
-                  {/* min-w-0 + truncate: textos longos ganham "..." em vez de empurrar o valor para fora */}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{t.descricao}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {formatarData(t.data)} · {t.categoriaNome} · {t.contaNome}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "shrink-0 text-sm font-medium tabular-nums",
-                      t.tipo === "Receita" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
-                    )}
-                  >
-                    {t.tipo === "Receita" ? "+ " : "− "}
-                    {formatarMoeda(t.valor)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {/* Linha 3: orçamentos (2/5) e últimas transações (3/5). */}
+      <section className="mt-4 grid gap-4 lg:grid-cols-5">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Orçamentos</CardTitle>
+            <CardDescription>Gasto em relação ao limite de cada categoria</CardDescription>
+            <CardAction>
+              <Link href={`/orcamentos?ano=${ano}&mes=${mes}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                Gerenciar <ArrowRight />
+              </Link>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            {orcamentosComLimite.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Nenhum limite definido neste mês.{" "}
+                <Link href={`/orcamentos?ano=${ano}&mes=${mes}`} className="underline underline-offset-4 hover:text-foreground">
+                  Definir limites
+                </Link>
+              </p>
+            ) : (
+              <ul className="grid gap-4">
+                {orcamentosComLimite.map((o) => (
+                  <li key={o.categoriaId} className="grid gap-1.5">
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <span className="size-2.5 rounded-full" style={{ backgroundColor: o.categoriaCor }} aria-hidden="true" />
+                      {o.categoriaNome}
+                    </span>
+                    {/* `!` (non-null assertion): o filter acima já garantiu que não são null */}
+                    <BarraOrcamento gasto={o.gasto} limite={o.limite!} percentual={o.percentual!} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Últimas transações do mês, com atalho para a lista completa já filtrada. */}
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Últimas transações</CardTitle>
+            <CardDescription>
+              {ultimas.totalItens} lançamento(s) em {nomeMes}
+            </CardDescription>
+            <CardAction>
+              <Link href={`/transacoes?ano=${ano}&mes=${mes}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                Ver todas <ArrowRight />
+              </Link>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            {ultimas.itens.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma transação neste mês.</p>
+            ) : (
+              <ul className="divide-y">
+                {ultimas.itens.map((t) => (
+                  <li key={t.id} className="flex items-center gap-3 py-2.5">
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.categoriaCor }} aria-hidden="true" />
+                    {/* min-w-0 + truncate: textos longos ganham "..." em vez de empurrar o valor para fora */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{t.descricao}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {formatarData(t.data)} · {t.categoriaNome} · {t.contaNome}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "shrink-0 text-sm font-medium tabular-nums",
+                        t.tipo === "Receita" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
+                      )}
+                    >
+                      {t.tipo === "Receita" ? "+ " : "− "}
+                      {formatarMoeda(t.valor)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </>
   );
 }

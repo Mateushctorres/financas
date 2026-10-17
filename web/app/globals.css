@@ -9,6 +9,11 @@
      e são usadas também pelos gráficos, então cards e gráficos sempre combinam. */
   --color-serie-receitas: var(--serie-receitas);
   --color-serie-despesas: var(--serie-despesas);
+  /* Cores de status dos orçamentos: fixas nos dois temas, porque significam estado
+     (ok / atenção / estourou), não identidade. Sempre acompanhadas de ícone + texto. */
+  --color-status-ok: #0ca30c;
+  --color-status-atencao: #fab219;
+  --color-status-estourado: #d03b3b;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);

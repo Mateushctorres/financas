@@ -228,3 +228,67 @@ Uma alternativa mais avançada seria envolver cada seção em `<Suspense>`, para
 1. Troque o `Promise.all` por quatro `await` em sequência. Coloque um `await new Promise(r => setTimeout(r, 1000))` dentro de um endpoint da API (ou use a aba Network do navegador) e compare o tempo de carregamento. Depois desfaça.
 2. No gráfico de evolução, adicione uma terceira série "Resultado" como **linha** (`ComposedChart` + `Line`). Pense: precisa de um segundo eixo? (Não: está na mesma escala de reais. Dois eixos Y num mesmo gráfico quase sempre enganam.)
 3. Clique em "Ver como tabela" com o leitor de tela do Windows (Narrador, Ctrl+Win+Enter) ligado e compare com o que ele lê do gráfico.
+
+---
+
+## Fase 5: Orçamentos
+
+### `useActionState`: como funciona
+
+É a forma recomendada no React 19 para um formulário que chama uma action e precisa mostrar "enviando" e erros. Ele substituiu o antigo `useFormState` do `react-dom`, que ainda aparece em tutoriais antigos.
+
+```tsx
+const [estado, acao, pendente] = useActionState(funcao, estadoInicial);
+
+<form action={acao}>...</form>
+```
+
+1. Você entrega a função (aqui, a Server Action `definirLimite`) e o estado inicial.
+2. Recebe de volta:
+   - `estado`: o que a função devolveu da última vez;
+   - `acao`: a versão "embrulhada" da função, para o `<form action>`;
+   - `pendente`: `true` enquanto ela roda.
+3. No envio, o React monta o `FormData` e chama `funcao(estadoAnterior, formData)`. O retorno vira o novo `estado`, e o componente renderiza de novo.
+
+Pense num **reducer assíncrono**: `(estado, entrada) => novoEstado`, em que a entrada é o `FormData` e a função pode rodar no servidor. O que ele elimina é o código que você escreveria à mão: o `useState` de "carregando", o `useState` de "erro", o `try/catch` e o `preventDefault`.
+
+Detalhes que aparecem no `limite-inline.tsx`:
+- **O envio roda numa "transição"**: a tela continua respondendo, e o `revalidatePath` da action traz os dados novos da página na mesma resposta. Por isso a barra de progresso atualiza sozinha depois de salvar.
+- **O React 19 reseta o formulário depois de cada envio**: em caso de erro, a action devolve o que foi digitado (`valores`), e o campo é recriado com esse valor (`key`).
+- **`readOnly` em vez de `disabled` enquanto envia**: campos `disabled` não entram no `FormData`.
+
+### `useFormStatus`: o complemento
+
+```tsx
+function BotaoSalvar() {
+  const { pending } = useFormStatus(); // do "react-dom"
+  return <Button type="submit" disabled={pending}>...</Button>;
+}
+```
+
+- Funciona só num componente **dentro** de um `<form>` e lê o status do envio desse form.
+- Serve para botões reutilizáveis saberem que o form está enviando, sem receber isso por props.
+- Regra prática: `useActionState` no componente que tem o `<form>` (estado e erros); `useFormStatus` em peças filhas que só precisam saber se está pendente.
+
+### Outros conceitos
+
+- **Dois botões, duas ações num mesmo bloco**:
+  - salvar é o `submit` do form;
+  - remover é `type="button"` com `useTransition`. Sem o `type="button"`, ele também enviaria o formulário.
+- **Cores de status** (`bg-status-ok`, `bg-status-atencao`, `bg-status-estourado` em `globals.css`): são fixas nos dois temas, porque significam estado, não identidade. Sempre vêm com ícone + texto ("Estourou"), nunca só a cor.
+- **`role="meter"`** na barra: diz ao leitor de tela que é uma medida numa faixa, com `aria-valuetext` em português ("R$ 509,90 de R$ 400,00, 127,5%").
+- **Componente compartilhado entre telas**: `BarraOrcamento` é um Server Component usado na tela de Orçamentos e no Dashboard.
+
+### Onde olhar
+
+- `web/components/orcamentos/limite-inline.tsx`: `useActionState`, `useFormStatus` e `useTransition` no mesmo arquivo, comentados
+- `web/app/orcamentos/actions.ts`: `definirLimite` (upsert via `PUT`) e `removerLimite`
+- `web/app/orcamentos/page.tsx`: as listas "Com limite" e "Sem limite"
+- `web/components/orcamentos/barra-orcamento.tsx`: as faixas de cor e a acessibilidade da barra
+- `web/app/page.tsx`: o bloco de orçamentos no Dashboard (a 5ª chamada do `Promise.all`)
+
+### Exercícios
+
+1. No `LimiteInline`, troque o `<BotaoSalvar />` por um botão que use o `pendente` do `useActionState` direto, sem `useFormStatus`. As duas formas funcionam: qual fica mais clara para você?
+2. Digite `0` no limite e salve. O navegador bloqueia por causa do `min="0.01"`. Remova o `min` e tente de novo: o erro agora vem da **API** (validação `[Range]` do `OrcamentoInput`) e aparece embaixo do campo. É a prova de que a regra de verdade está no backend.
+3. Adicione no topo da tela de Orçamentos um resumo "X de Y categorias dentro do limite". Isso é contagem para exibição ou regra de negócio? Se achar que é regra, crie o campo na API (`OrcamentosEndpoints.cs`), rode `npm run gen:api` e use o valor no front.

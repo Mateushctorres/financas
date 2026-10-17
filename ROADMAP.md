@@ -44,9 +44,9 @@ Uma fase por vez. Ao concluir, marque os itens, atualize `docs/APRENDIZADO.md`, 
 - [x] Últimas transações
 
 ## Fase 5 — Orçamentos
-- [ ] Tela de orçamentos do mês com barra de progresso por categoria (verde, amarelo a partir de 80%, vermelho acima de 100%)
-- [ ] Definir/editar limite inline
-- [ ] Bloco de orçamento no dashboard
+- [x] Tela de orçamentos do mês com barra de progresso por categoria (verde, amarelo a partir de 80%, vermelho acima de 100%)
+- [x] Definir/editar limite inline
+- [x] Bloco de orçamento no dashboard
 
 ## Fase 6 — Polimento
 - [ ] `loading.tsx` com skeletons e `error.tsx` nas rotas
